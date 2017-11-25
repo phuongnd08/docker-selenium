@@ -19,10 +19,22 @@ SERVERNUM=$(get_server_num)
 
 rm -f /tmp/.X*lock
 
-xvfb-run -n $SERVERNUM --server-args="-screen 0 $GEOMETRY -ac +extension RANDR" \
-  java ${JAVA_OPTS} -jar /opt/selenium/selenium-server-standalone.jar \
-  ${SE_OPTS} &
-NODE_PID=$!
+necessary=true
 
-trap shutdown SIGTERM SIGINT
-wait $NODE_PID
+while $necessary
+do
+  xvfb-run -n $SERVERNUM --server-args="-screen 0 $GEOMETRY -ac +extension RANDR" \
+    java ${JAVA_OPTS} -jar /opt/selenium/selenium-server-standalone.jar \
+    ${SE_OPTS}
+
+  status=$?
+  if [ $status -eq 0 ]; then
+    echo "clean exit"
+    necessary=false
+  fi
+
+  if [ $status -eq 130 ]; then
+    echo "user hit ctrl+c"
+    necessary=false
+  fi
+done
